@@ -1,0 +1,33 @@
+name: uptime
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check every public door
+        run: |
+          set -u
+          failed=0
+          page() { # url
+            code=$(curl -s -o /dev/null -m 20 --retry 2 --retry-delay 5 --retry-all-errors -w '%{http_code}' "$1") || code=000
+            if [ "$code" = 200 ]; then echo "ok   $1"; else echo "DOWN $1 -> $code"; failed=1; fi
+          }
+          json() { # url, jq filter that must print true
+            body=$(curl -s -m 20 --retry 2 --retry-delay 5 --retry-all-errors "$1") || body='{}'
+            if [ "$(printf '%s' "$body" | jq -r "$2" 2>/dev/null)" = true ]; then echo "ok   $1"; else echo "DOWN $1 -> $body"; failed=1; fi
+          }
+          page https://outdm.com/
+          page https://outdm.com/fr
+          json https://outdm.com/api/health '.ok == true and .workerOnline == true'
+          page https://seoformy.app/
+          json https://seoformy.app/api/health '.status == "ok" and .database.status == "ok"'
+          exit $failed
