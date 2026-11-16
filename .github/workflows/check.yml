@@ -30,4 +30,6 @@ jobs:
           json https://outdm.com/api/health '.ok == true and .workerOnline == true'
           page https://seoformy.app/
           json https://seoformy.app/api/health '.status == "ok" and .database.status == "ok"'
+          page https://outformat.com/
+          json https://outformat.com/api/health '.ok == true'
           exit $failed
